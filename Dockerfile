@@ -1,6 +1,7 @@
 FROM ubuntu:latest
 
 ARG VERSION
+ARG GITHUB_TOKEN
 
 LABEL org.opencontainers.image.title="Palace" \
       org.opencontainers.image.source="https://github.com/awslabs/palace" \
@@ -34,7 +35,15 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# Configure git to use GitHub token for authenticated requests
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+        git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" ; \
+    fi
 
+# Add retry logic for wget
+RUN echo "tries = 5" >> /etc/wgetrc && \
+    echo "waitretry = 2" >> /etc/wgetrc && \
+    echo "timeout = 30" >> /etc/wgetrc
 
 # Clone Palace
 RUN git clone https://github.com/awslabs/palace.git /opt/palace-src  && \
@@ -64,5 +73,8 @@ RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
         -DPALACE_WITH_GSLIB:BOOL=ON && \
     make -j"$(nproc)" && \
     cd / && rm -rf /opt/palace-build
+
+# Clear git credentials after build (security best practice)
+RUN git config --global --unset url."https://${GITHUB_TOKEN}@github.com/".insteadOf || true
 
 CMD ["/bin/bash"]
