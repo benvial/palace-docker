@@ -6,7 +6,7 @@ on:
       - main
   release:
     types: [published]
-    
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -34,7 +34,6 @@ jobs:
         run: |
           if [ "${{ matrix.build-type }}" = "dev" ]; then
             echo "TAG=dev" >> $GITHUB_ENV
-            echo "VERSION=dev" >> $GITHUB_ENV
           else
             echo "TAG=latest" >> $GITHUB_ENV
             echo "VERSION=${{ matrix.build-type }}" >> $GITHUB_ENV
