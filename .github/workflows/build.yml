@@ -14,7 +14,7 @@ jobs:
       matrix:
         build-type:
           - dev
-          - 0.15.0
+          - v0.15.0
 
     steps:
       # 1. Checkout repository

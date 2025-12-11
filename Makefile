@@ -4,7 +4,7 @@ REPO_URL := https://github.com/awslabs/palace.git
 REGISTRY := ghcr.io/$(OWNER)
 FULL_IMAGE := $(REGISTRY)/$(IMAGE_NAME)
 
-VERSION ?= $(shell git rev-parse --short HEAD)
+VERSION ?= $(shell git ls-remote $(REPO_URL) refs/heads/main | cut -f1 | cut -c1-7)
 TAG ?= dev
 
 .PHONY: info build tag push version all
