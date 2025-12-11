@@ -40,18 +40,32 @@ RUN if [ -n "$GITHUB_TOKEN" ]; then \
         git config --global url."https://${GITHUB_TOKEN}@github.com/".insteadOf "https://github.com/" ; \
     fi
 
-# Add retry logic for wget
+# Configure curl to add Authorization header for GitHub requests
+RUN if [ -n "$GITHUB_TOKEN" ]; then \
+        mkdir -p ~/.curlrc.d && \
+        echo 'header = "Authorization: token '${GITHUB_TOKEN}'"' > /root/.curlrc ; \
+    fi
+
+# Add retry logic for wget and curl
 RUN echo "tries = 5" >> /etc/wgetrc && \
     echo "waitretry = 2" >> /etc/wgetrc && \
-    echo "timeout = 30" >> /etc/wgetrc
+    echo "timeout = 30" >> /etc/wgetrc && \
+    echo "retry = 5" >> /root/.curlrc && \
+    echo "retry-delay = 2" >> /root/.curlrc && \
+    echo "connect-timeout = 30" >> /root/.curlrc
 
 # Clone Palace
 RUN git clone https://github.com/awslabs/palace.git /opt/palace-src  && \
     cd /opt/palace-src && \
     git checkout ${VERSION}
 
-# Build Palace
+# Build Palace with CMake configured to use authentication
 RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
+    if [ -n "$GITHUB_TOKEN" ]; then \
+        CMAKE_EXTRA_ARGS="-DCMAKE_TLS_VERIFY=ON" ; \
+    else \
+        CMAKE_EXTRA_ARGS="" ; \
+    fi && \
     cmake /opt/palace-src \
         -DCMAKE_INSTALL_PREFIX=/opt/palace \
         -DCMAKE_BUILD_TYPE="Release" \
@@ -70,11 +84,13 @@ RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
         -DPALACE_WITH_ARPACK:BOOL=ON \
         -DPALACE_WITH_LIBXSMM:BOOL=ON \
         -DPALACE_WITH_MAGMA:BOOL=ON \
-        -DPALACE_WITH_GSLIB:BOOL=ON && \
+        -DPALACE_WITH_GSLIB:BOOL=ON \
+        ${CMAKE_EXTRA_ARGS} && \
     make -j"$(nproc)" && \
     cd / && rm -rf /opt/palace-build
 
-# Clear git credentials after build (security best practice)
-RUN git config --global --unset url."https://${GITHUB_TOKEN}@github.com/".insteadOf || true
+# Clear credentials after build (security best practice)
+RUN git config --global --unset url."https://${GITHUB_TOKEN}@github.com/".insteadOf || true && \
+    rm -f /root/.curlrc
 
 CMD ["/bin/bash"]
