@@ -1,4 +1,4 @@
-FROM ubuntu:22.04
+FROM ubuntu:latest
 
 ARG VERSION
 
@@ -30,14 +30,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         mpich \
         libmpich-dev \
         ca-certificates \
+        cmake \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-
-
-# Palace needs CMake ≥ 3.26
-RUN wget https://github.com/Kitware/CMake/releases/download/v3.31.0/cmake-3.31.0-linux-$(uname -m).sh && \
-    bash cmake-3.31.0-linux-*.sh --skip-license --prefix=/usr/local && \
-    rm -f cmake-3.31.0-linux-*.sh
 
 
 
