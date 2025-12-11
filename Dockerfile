@@ -4,11 +4,10 @@ ARG VERSION
 ARG GITHUB_TOKEN
 
 LABEL org.opencontainers.image.title="Palace" \
-      org.opencontainers.image.source="https://github.com/awslabs/palace" \
-      org.opencontainers.image.vendor="AWS Labs" \
+      org.opencontainers.image.source="https://github.com/benvial/palace-docker" \
       org.opencontainers.image.revision=$VERSION \
-      org.opencontainers.image.base.name="docker.io/library/ubuntu:22.04" \
-      description="This container contains Palace compiled with all dependencies."
+      org.opencontainers.image.base.name="docker.io/library/ubuntu:latest" \
+      description="This container contains Palace compiled with all dependencies (without GPU support)."
 
 ENV PATH="/opt/palace/bin:${PATH}"
 
