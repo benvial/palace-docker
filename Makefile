@@ -1,25 +1,33 @@
-IMAGE_NAME := benvial/palace
+OWNER := benvial
+IMAGE_NAME := palace
 REPO_URL := https://github.com/awslabs/palace.git
-GIT_SHA ?= $(shell git ls-remote https://github.com/awslabs/palace.git refs/heads/main | cut -f1 | cut -c1-7)
+REGISTRY := ghcr.io/$(OWNER)
+FULL_IMAGE := $(REGISTRY)/$(IMAGE_NAME)
+
+VERSION ?= $(shell git rev-parse --short HEAD)
 TAG ?= dev
 
-info:
-	@echo building sha $(GIT_SHA) with tag $(IMAGE_NAME):$(TAG)
+.PHONY: info build tag push version all
 
+
+
+info:
+	@echo "Building VERSION $(VERSION) with tag $(FULL_IMAGE):$(TAG)"
+	
+login:
+	echo $${GITHUB_TOKEN} | docker login ghcr.io -u $(OWNER) --password-stdin
 
 build: info
-	docker build --build-arg GIT_SHA=$(GIT_SHA) -t $(IMAGE_NAME):$(TAG) .
+	docker build --build-arg VERSION=$(VERSION) -t $(FULL_IMAGE):$(TAG) .
 
 tag:
-	docker tag $(IMAGE_NAME):$(TAG) $(IMAGE_NAME):$(GIT_SHA)
+	docker tag $(FULL_IMAGE):$(TAG) $(FULL_IMAGE):$(VERSION)
 
 push:
-	docker push $(IMAGE_NAME):$(TAG)
-	docker push $(IMAGE_NAME):$(GIT_SHA)
+	docker push $(FULL_IMAGE):$(TAG)
+	docker push $(FULL_IMAGE):$(VERSION)
 
-
-sha:
-	@echo $(GIT_SHA)
+version:
+	@echo $(VERSION)
 
 all: build tag push
-

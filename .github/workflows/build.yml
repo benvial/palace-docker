@@ -1,0 +1,45 @@
+name: Build and Push Docker Images
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        build-type:
+          - dev
+          - 0.15.0
+
+    steps:
+      # 1. Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      # 2. Set GITHUB_TOKEN for Makefile login
+      - name: Set GITHUB_TOKEN
+        run: echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+
+      # 3. Log in to GHCR using Makefile
+      - name: Log in to GHCR
+        run: make login
+
+      # 4. Set TAG and VERSION for Makefile
+      - name: Set TAG and VERSION
+        run: |
+          if [ "${{ matrix.build-type }}" = "dev" ]; then
+            echo "TAG=dev" >> $GITHUB_ENV
+            echo "VERSION=dev" >> $GITHUB_ENV
+          else
+            echo "TAG=latest" >> $GITHUB_ENV
+            echo "VERSION=${{ matrix.build-type }}" >> $GITHUB_ENV
+          fi
+
+      # 5. Build and push using Makefile
+      - name: Build and push Docker image
+        run: make all
