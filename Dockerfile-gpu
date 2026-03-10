@@ -1,23 +1,17 @@
-# ── changed: base image swapped from ubuntu:latest to CUDA devel image
-FROM nvidia/cuda:12.4.1-devel-ubuntu22.04
+# ==============================================================================
+# Stage 1: builder — full CUDA devel image with all compilers and build tools
+# ==============================================================================
+FROM nvidia/cuda:12.6.0-devel-ubuntu24.04 AS builder
 
 ARG VERSION
 ARG GITHUB_TOKEN
+ARG OPENMPI_VERSION=5.0.3
 
-# ── changed: updated labels to reflect GPU support
-LABEL org.opencontainers.image.title="Palace (GPU)" \
-      org.opencontainers.image.source="https://github.com/benvial/palace-docker" \
-      org.opencontainers.image.revision=$VERSION \
-      org.opencontainers.image.base.name="nvidia/cuda:12.4.1-devel-ubuntu22.04" \
-      org.opencontainers.image.description="This container contains Palace compiled with all dependencies (with CUDA GPU support)."
-
-ENV PATH="/opt/palace/bin:${PATH}"
-# ── changed: suppress interactive prompts from apt in the CUDA base image
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN mkdir -p /opt/palace-src
 
-# Install dependencies
+# Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
         build-essential \
         curl \
@@ -37,7 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Build GPU-aware OpenMPI with CUDA support
-ARG OPENMPI_VERSION=5.0.3
 RUN wget https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-${OPENMPI_VERSION}.tar.gz && \
     tar xf openmpi-${OPENMPI_VERSION}.tar.gz && \
     cd openmpi-${OPENMPI_VERSION} && \
@@ -71,7 +64,7 @@ RUN echo "tries = 5" >> /etc/wgetrc && \
     echo "connect-timeout = 30" >> /root/.curlrc
 
 # Clone Palace
-RUN git clone https://github.com/awslabs/palace.git /opt/palace-src  && \
+RUN git clone https://github.com/awslabs/palace.git /opt/palace-src && \
     cd /opt/palace-src && \
     git checkout ${VERSION}
 
@@ -88,38 +81,67 @@ RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
         -DCMAKE_CXX_COMPILER=g++ \
         -DCMAKE_C_COMPILER=gcc \
         -DCMAKE_Fortran_COMPILER=gfortran \
-        # ── changed: disable LTO to avoid CUDA "fatbinData already defined" link error
         -DCMAKE_CXX_FLAGS="-fPIC -O3 -fno-lto" \
         -DCMAKE_C_FLAGS="-fPIC -O3 -fno-lto" \
         -DBUILD_SHARED_LIBS:BOOL=ON \
         -DPALACE_WITH_64BIT_INT:BOOL=OFF \
         -DPALACE_WITH_OPENMP:BOOL=ON \
-        # ── changed: enable CUDA, disable HIP
         -DPALACE_WITH_CUDA:BOOL=ON \
         -DPALACE_WITH_HIP:BOOL=OFF \
-        # ── changed: target Volta through Hopper (covers V100, T4, A100, H100, RTX)
         -DCMAKE_CUDA_ARCHITECTURES="70;75;80;86;89;90" \
-        # ── changed: nvcc compiler pulled from CUDA base image
         -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
-        # ── changed: enabled since OpenMPI is built with CUDA support above
         -DPALACE_WITH_GPU_AWARE_MPI:BOOL=ON \
         -DPALACE_WITH_SUPERLU:BOOL=ON \
         -DPALACE_WITH_STRUMPACK:BOOL=ON \
-        -DPALACE_WITH_STRUMPACK_BUTTERFLYPACK:BOOL=OFF \
+        -DPALACE_WITH_STRUMPACK_BUTTERFLYPACK:BOOL=ON \
         -DPALACE_WITH_STRUMPACK_ZFP:BOOL=ON \
         -DPALACE_WITH_MUMPS:BOOL=ON \
         -DPALACE_WITH_SLEPC:BOOL=ON \
         -DPALACE_WITH_ARPACK:BOOL=ON \
         -DPALACE_WITH_LIBXSMM:BOOL=ON \
-        # ── changed: enable MAGMA (GPU-accelerated dense linear algebra)
         -DPALACE_WITH_MAGMA:BOOL=ON \
         -DPALACE_WITH_GSLIB:BOOL=ON \
         ${CMAKE_EXTRA_ARGS} && \
     make -j"$(nproc)" && \
-    cd / && rm -rf /opt/palace-build
+    cd / && rm -rf /opt/palace-build /opt/palace-src
 
 # Clear credentials after build (security best practice)
 RUN git config --global --unset url."https://${GITHUB_TOKEN}@github.com/".insteadOf || true && \
     rm -f /root/.curlrc
+
+# ==============================================================================
+# Stage 2: runtime — minimal CUDA runtime image, no compilers or build tools
+# ==============================================================================
+FROM nvidia/cuda:12.6.0-runtime-ubuntu24.04
+
+ARG VERSION
+
+LABEL org.opencontainers.image.title="Palace (GPU)" \
+      org.opencontainers.image.source="https://github.com/benvial/palace-docker" \
+      org.opencontainers.image.revision=$VERSION \
+      org.opencontainers.image.base.name="nvidia/cuda:12.4.1-runtime-ubuntu22.04" \
+      org.opencontainers.image.description="This container contains Palace compiled with all dependencies (with CUDA GPU support)."
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV PATH="/opt/palace/bin:${PATH}"
+
+# Install only runtime dependencies (no compilers)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        libopenblas-dev \
+        libunwind-dev \
+        ca-certificates \
+    && update-ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy Palace binary and dependencies from builder
+COPY --from=builder /opt/palace /opt/palace
+
+# Copy OpenMPI runtime libraries from builder
+COPY --from=builder /usr/local/lib /usr/local/lib
+COPY --from=builder /usr/local/bin/mpi* /usr/local/bin/
+COPY --from=builder /usr/local/bin/orte* /usr/local/bin/
+COPY --from=builder /usr/local/etc/openmpi /usr/local/etc/openmpi
+
+RUN ldconfig
 
 CMD ["/bin/bash"]
