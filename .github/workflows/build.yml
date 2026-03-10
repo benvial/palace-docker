@@ -19,6 +19,7 @@ jobs:
         build-type:
           - dev
           - v0.15.0
+          - v0.16.0
 
     steps:
       # 1. Checkout repository

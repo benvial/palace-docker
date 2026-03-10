@@ -82,7 +82,7 @@ RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
         -DPALACE_WITH_SLEPC:BOOL=ON \
         -DPALACE_WITH_ARPACK:BOOL=ON \
         -DPALACE_WITH_LIBXSMM:BOOL=ON \
-        -DPALACE_WITH_MAGMA:BOOL=ON \
+        -DPALACE_WITH_MAGMA:BOOL=OFF \
         -DPALACE_WITH_GSLIB:BOOL=ON \
         ${CMAKE_EXTRA_ARGS} && \
     make -j"$(nproc)" && \
