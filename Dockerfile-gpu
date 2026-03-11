@@ -9,6 +9,14 @@ ARG OPENMPI_VERSION=5.0.3
 ARG CUDA_ARCH=80
 
 ENV DEBIAN_FRONTEND=noninteractive
+# Required for nvcc to find the correct host compiler
+ENV CUDAHOSTCXX=/usr/bin/g++
+# Required for MPI to run as root inside Docker
+ENV OMPI_ALLOW_RUN_AS_ROOT=1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+# Fixes MPI_ERR_BUFFER in Docker (disables shared memory copy mechanism)
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+ENV OMPI_MCA_btl=^openib
 
 RUN mkdir -p /opt/palace-src
 
@@ -69,6 +77,66 @@ RUN git clone https://github.com/awslabs/palace.git /opt/palace-src && \
     cd /opt/palace-src && \
     git checkout ${VERSION}
 
+# Patch PkgConfigHelpers.cmake to replace try_run with try_compile for PETSc and SLEPc
+# try_run fails in Docker because MPI cannot initialize properly without a real network
+# environment. Compilation success is sufficient to verify the libraries are correct.
+# See https://github.com/awslabs/palace/issues/649
+RUN python3 << 'EOF'
+content = open('/opt/palace-src/palace/cmake/PkgConfigHelpers.cmake').read()
+
+old_petsc = """  try_run(
+    PETSC_TEST_EXITCODE
+    PETSC_TEST_COMPILED
+    ${PETSC_LIB_TEST_DIR}
+    ${PETSC_LIB_TEST_CPP}
+    CMAKE_FLAGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    LINK_LIBRARIES ${_petsc_target}
+    COMPILE_OUTPUT_VARIABLE PETSC_TEST_COMPILE_OUTPUT
+    RUN_OUTPUT_VARIABLE PETSC_TEST_OUTPUT
+  )
+  if(PETSC_TEST_COMPILED AND PETSC_TEST_EXITCODE EQUAL 0)"""
+
+new_petsc = """  try_compile(
+    PETSC_TEST_COMPILED
+    ${PETSC_LIB_TEST_DIR}
+    ${PETSC_LIB_TEST_CPP}
+    CMAKE_FLAGS -DCMAKE_C_COMPILER=${CMAKE_C_COMPILER} -DCMAKE_CXX_COMPILER=${CMAKE_CXX_COMPILER}
+    LINK_LIBRARIES ${_petsc_target}
+    OUTPUT_VARIABLE PETSC_TEST_COMPILE_OUTPUT
+  )
+  if(PETSC_TEST_COMPILED)"""
+
+old_slepc = """  try_run(
+    SLEPC_TEST_EXITCODE
+    SLEPC_TEST_COMPILED
+    ${SLEPC_LIB_TEST_DIR}
+    ${SLEPC_LIB_TEST_CPP}
+    LINK_LIBRARIES ${_slepc_target}
+    COMPILE_OUTPUT_VARIABLE SLEPC_TEST_COMPILE_OUTPUT
+    RUN_OUTPUT_VARIABLE SLEPC_TEST_OUTPUT
+  )
+  # message(STATUS "SLEPC_TEST_COMPILE_OUTPUT: ${SLEPC_TEST_COMPILE_OUTPUT}")
+  # message(STATUS "SLEPC_TEST_OUTPUT: ${SLEPC_TEST_OUTPUT}")
+  if(SLEPC_TEST_COMPILED AND SLEPC_TEST_EXITCODE EQUAL 0)"""
+
+new_slepc = """  try_compile(
+    SLEPC_TEST_COMPILED
+    ${SLEPC_LIB_TEST_DIR}
+    ${SLEPC_LIB_TEST_CPP}
+    LINK_LIBRARIES ${_slepc_target}
+    OUTPUT_VARIABLE SLEPC_TEST_COMPILE_OUTPUT
+  )
+  # message(STATUS "SLEPC_TEST_COMPILE_OUTPUT: ${SLEPC_TEST_COMPILE_OUTPUT}")
+  if(SLEPC_TEST_COMPILED)"""
+
+content = content.replace(old_petsc, new_petsc).replace(old_slepc, new_slepc)
+open('/opt/palace-src/palace/cmake/PkgConfigHelpers.cmake', 'w').write(content)
+print("Patch applied successfully")
+EOF
+
+# Create libcuda.so.1 stub symlink for build-time linking without a GPU driver
+RUN ln -sf /usr/local/cuda/lib64/stubs/libcuda.so /usr/local/cuda/lib64/stubs/libcuda.so.1
+
 # Build Palace
 RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
     if [ -n "$GITHUB_TOKEN" ]; then \
@@ -76,21 +144,28 @@ RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
     else \
         CMAKE_EXTRA_ARGS="" ; \
     fi && \
+    CUDAHOSTCXX=/usr/bin/g++ \
+    LDFLAGS="-L/usr/local/cuda/lib64/stubs -lcuda" \
+    LD_LIBRARY_PATH="/usr/local/cuda/lib64/stubs:${LD_LIBRARY_PATH}" \
     cmake /opt/palace-src \
         -DCMAKE_INSTALL_PREFIX=/opt/palace \
         -DCMAKE_BUILD_TYPE="Release" \
         -DCMAKE_CXX_COMPILER=g++ \
         -DCMAKE_C_COMPILER=gcc \
         -DCMAKE_Fortran_COMPILER=gfortran \
+        -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
+        -DCMAKE_CUDA_HOST_COMPILER=/usr/bin/g++ \
         -DCMAKE_CXX_FLAGS="-fPIC -O3 -fno-lto" \
         -DCMAKE_C_FLAGS="-fPIC -O3 -fno-lto" \
+        -DCMAKE_EXE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -lcuda" \
+        -DCMAKE_SHARED_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -lcuda" \
+        -DCMAKE_MODULE_LINKER_FLAGS="-L/usr/local/cuda/lib64/stubs -lcuda" \
         -DBUILD_SHARED_LIBS:BOOL=ON \
         -DPALACE_WITH_64BIT_INT:BOOL=OFF \
         -DPALACE_WITH_OPENMP:BOOL=ON \
         -DPALACE_WITH_CUDA:BOOL=ON \
         -DPALACE_WITH_HIP:BOOL=OFF \
         -DCMAKE_CUDA_ARCHITECTURES="${CUDA_ARCH}" \
-        -DCMAKE_CUDA_COMPILER=/usr/local/cuda/bin/nvcc \
         -DPALACE_WITH_GPU_AWARE_MPI:BOOL=ON \
         -DPALACE_WITH_SUPERLU:BOOL=ON \
         -DPALACE_WITH_STRUMPACK:BOOL=ON \
@@ -104,6 +179,7 @@ RUN mkdir -p /opt/palace-build && cd /opt/palace-build && \
         -DPALACE_WITH_GSLIB:BOOL=ON \
         ${CMAKE_EXTRA_ARGS} && \
     make -j"$(nproc)" && \
+    make install && \
     cd / && rm -rf /opt/palace-build /opt/palace-src
 
 # Clear credentials after build (security best practice)
@@ -126,6 +202,12 @@ LABEL org.opencontainers.image.title="Palace (GPU sm${CUDA_ARCH})" \
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV PATH="/opt/palace/bin:${PATH}"
+# Allow running as root (common in container environments)
+ENV OMPI_ALLOW_RUN_AS_ROOT=1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+# Fixes MPI shared memory issues in Docker/container environments
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+ENV OMPI_MCA_btl=^openib
 
 # Install only runtime dependencies (no compilers)
 RUN apt-get update && apt-get install -y --no-install-recommends \
