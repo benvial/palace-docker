@@ -169,15 +169,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /opt/palace /opt/palace
 
 # Copy OpenMPI runtime libraries from builder
-COPY --from=builder /usr/local/lib /usr/local/lib
-COPY --from=builder /usr/local/bin/mpi* /usr/local/bin/
-COPY --from=builder /usr/local/bin/orte* /usr/local/bin/
-COPY --from=builder /usr/local/etc/openmpi-mca-params.conf /usr/local/etc/
-COPY --from=builder /usr/local/etc/openmpi-totalview.tcl /usr/local/etc/
-COPY --from=builder /usr/local/etc/pmix-mca-params.conf /usr/local/etc/
-COPY --from=builder /usr/local/etc/prte-mca-params.conf /usr/local/etc/
-COPY --from=builder /usr/local/etc/prte-default-hostfile /usr/local/etc/
-COPY --from=builder /usr/local/etc/prte.conf /usr/local/etc/
+COPY --from=builder /usr/local /usr/local
 
 RUN ldconfig
 
