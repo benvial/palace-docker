@@ -1,4 +1,4 @@
-name: Build and Push CPU Docker Images
+name: Build and Push GPU Docker Images
 
 permissions:
   contents: read
@@ -20,11 +20,15 @@ on:
         default: 'dev'
 
 jobs:
-  build:
+  build-gpu:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         build-type: ${{ github.event_name == 'schedule' && fromJson('["dev"]') || github.event_name == 'workflow_dispatch' && fromJson(format('["{0}"]', inputs.build-type)) || fromJson(format('["{0}"]', github.ref_name)) }}
+        cuda-arch:
+          - 75   # Turing  — T4 (AWS g4dn, GCP T4)
+          - 80   # Ampere  — A100 (AWS p4d, GCP A100)
+          - 90   # Hopper  — H100 (AWS p5, GCP H100)
 
     steps:
       - name: Checkout repository
@@ -36,7 +40,7 @@ jobs:
       - name: Log in to GHCR
         run: make login
 
-      - name: Set TAG and VERSION
+      - name: Set TAG, VERSION and CUDA_ARCH
         run: |
           if [ "${{ matrix.build-type }}" = "dev" ]; then
             echo "TAG=dev" >> $GITHUB_ENV
@@ -44,6 +48,7 @@ jobs:
             echo "TAG=latest" >> $GITHUB_ENV
             echo "VERSION=${{ matrix.build-type }}" >> $GITHUB_ENV
           fi
+          echo "CUDA_ARCH=${{ matrix.cuda-arch }}" >> $GITHUB_ENV
 
-      - name: Build and push Docker image
-        run: make all
+      - name: Build and push GPU Docker image
+        run: make all-gpu
