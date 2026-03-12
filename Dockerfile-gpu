@@ -49,6 +49,7 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-${OPENMPI_V
         --prefix=/usr/local \
         --enable-mpi-fortran \
         --enable-shared \
+        --with-isolated \
     && make -j"$(nproc)" install \
     && ldconfig \
     && cd / && rm -rf openmpi-${OPENMPI_VERSION} openmpi-${OPENMPI_VERSION}.tar.gz
@@ -162,6 +163,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libopenblas-dev \
         libunwind-dev \
         libgomp1 \
+        openssh-client \
         ca-certificates \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
