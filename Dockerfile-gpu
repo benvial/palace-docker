@@ -161,6 +161,7 @@ ENV OMPI_MCA_btl=^openib
 RUN apt-get update && apt-get install -y --no-install-recommends \
         libopenblas-dev \
         libunwind-dev \
+        libgomp1 \
         ca-certificates \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
