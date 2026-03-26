@@ -49,7 +49,6 @@ RUN wget https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-${OPENMPI_V
         --prefix=/usr/local \
         --enable-mpi-fortran \
         --enable-shared \
-        --with-isolated \
     && make -j"$(nproc)" install \
     && ldconfig \
     && cd / && rm -rf openmpi-${OPENMPI_VERSION} openmpi-${OPENMPI_VERSION}.tar.gz

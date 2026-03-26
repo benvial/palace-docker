@@ -1,0 +1,222 @@
+⪢  modal run test_palace.py --mode cpu --image-tag v0.16.0 --verbose true
+✓ Initialized. View run at https://modal.com/apps/benvial/main/ap-JRSLFU70MXTUXL957KgOMs
+Building image im-5ztXMxfwkjdhuZi6Hnq7ww
+
+=> Step 0: FROM ghcr.io/benvial/palace:v0.16.0
+Getting image source signatures
+Copying blob sha256:2b8045b4b841d5655aa396c149bc407f3ff339054191d249716856feb1966208
+Copying blob sha256:464f29f820773351d26cc3c3b6a697c745a3819039732f23ab1e0b20e7669200
+Copying blob sha256:01d7766a2e4a62b74e0bebf2cd12c47e675e9221174f6570854203e84ffe68b0
+Copying blob sha256:274cd0a74dfa9bd38f2d0019e31d8be9a2d10cf6d1dc153ce154d2b66378e81d
+Copying blob sha256:1de1d918b4d048acf2fba8c3bc5a2dd2bb150830ade5d97f5f0f5bea6162cf2e
+Copying blob sha256:bda19a327778039a99e2f3afb72b1d703da826de5e903b925abfa625a221da98
+Copying blob sha256:f1bbb5a83f867b2f834e995b66a993d1e847e9faea8aa81dc23ba2141579f73c
+Copying blob sha256:489d159038d1a919e1e288cc48bde05fa0cb1ac88783ad52b0597380965c0f5f
+Copying blob sha256:ffaf17ec777c4d477ed97c97c0c09308d91981d83964d01e18cee9c5d313a35e
+Copying config sha256:7c0597789c15ed62bbc0eec55e66cc6567b81a44b8478eb038ac568efbb909a5
+Writing manifest to image destination
+Unpacking OCI image
+   • unpacking rootfs ...
+   • ... done
+   • unpacked image rootfs: /tmp/.tmpx8CIPN
+Copied image in 1.80s
+
+=> Step 1: COPY /python/. /usr/local
+
+=> Step 2: RUN ln -s /usr/local/bin/python3 /usr/local/bin/python
+
+=> Step 3: ENV TERMINFO_DIRS=/etc/terminfo:/lib/terminfo:/usr/share/terminfo:/usr/lib/terminfo
+Saving image...
+Image saved, took 4.84s
+
+Built image im-5ztXMxfwkjdhuZi6Hnq7ww in 23.76s
+
+
+Building image im-wTo4UpK4evNYQIMdsNQpJ0
+
+=> Step 0: FROM base
+
+=> Step 1: RUN pip install json5
+Looking in indexes: http://pypi-mirror.modal.local:5555/simple
+Collecting json5
+  Downloading http://pypi-mirror.modal.local:5555/simple/json5/json5-0.13.0-py3-none-any.whl.metadata (36 kB)
+Downloading http://pypi-mirror.modal.local:5555/simple/json5/json5-0.13.0-py3-none-any.whl (36 kB)
+Installing collected packages: json5
+Successfully installed json5-0.13.0
+
+[notice] A new release of pip is available: 23.3.2 -> 26.0.1
+[notice] To update, run: pip install --upgrade pip
+Saving image...
+Image saved, took 1.25s
+
+Built image im-wTo4UpK4evNYQIMdsNQpJ0 in 4.64s
+
+
+✓ Created objects.
+├── 🔨 Created mount /home/bench/dev/gds/dev/palace/palace-docker/tests/test_palace.py
+├── 🔨 Created function check_infra_cpu.
+├── 🔨 Created function check_infra_gpu.
+├── 🔨 Created function run_example_cpu.
+└── 🔨 Created function run_example_gpu.
+
+Mode          : CPU
+Image         : ghcr.io/benvial/palace:v0.16.0
+Palace version: v0.16.0
+Solver backend: CPU
+============================================================
+
+Results:
+------------------------------------------------------------
+  ✅  palace --version
+       >> /usr/bin/mpirun -n 1 /opt/palace/bin/palace-x86_64.bin --version
+       [1773502224.688885] [modal:20   :0]       tcp_iface.c:893  UCX  ERROR 
+scandir(/sys/class/net) failed: No such file or directory
+       
+       Palace version: v0.16.0
+  ✅  MPI (2 procs)
+       >> /usr/bin/mpirun -n 2 /opt/palace/bin/palace-x86_64.bin --version
+       [1773502225.018331] [modal:39   :0]       tcp_iface.c:893  UCX  ERROR 
+scandir(/sys/class/net) failed: No such file or directory
+       [1773502225.018674] [modal:40   :0]       tcp_iface.c:893  UCX  ERROR 
+scandir(/sys/class/net) failed: No such file or directory
+       
+       Palace version: v0.16.0
+       
+       Palace version: v0.16.0
+  ✅  Capacitance (spheres)
+        Wrote fields to disk (Paraview) for source 2
+       
+        Wrote fields to disk (grid function) for source 2
+        Updating solution error estimates
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 6.910e-03, global unknowns = 66328
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 858.1M, Max. 858.1M, Avg. 858.1M, Total 
+858.1M
+       Estimated peak per-node memory usage is: Min. 858.1M, Max. 858.1M, Avg. 858.1M, Total 
+858.1M
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   0.381       0.381       0.381
+         Mesh Preprocessing             0.486       0.486       0.486
+       Operator Construction            5.647       5.647       5.647
+       Linear Solve                     0.200       0.200       0.200
+         Setup                          2.617       2.617       2.617
+         Preconditioner                 4.757       4.757       4.757
+         Coarse Solve                   0.015       0.015       0.015
+       Estimation                       0.055       0.055       0.055
+         Construction                   2.869       2.869       2.869
+         Solve                          3.124       3.124       3.124
+       Postprocessing                   0.197       0.197       0.197
+         Paraview                      10.535      10.535      10.535
+         Grid function                  3.956       3.956       3.956
+       Disk IO                          0.415       0.415       0.415
+       --------------------------------------------------------------
+       Total                           35.355      35.355      35.355
+  ✅  Inductance (rings)
+        Sol. ||A|| = 4.937292e+00 (||RHS|| = 3.841477e-01)
+        Field energy H = 9.478e-13 J
+       
+        Wrote fields to disk (Paraview) for source 2
+        Updating solution error estimates
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 2.605e-01, global unknowns = 491852
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 1.7G, Max. 1.7G, Avg. 1.7G, Total 1.7G
+       Estimated peak per-node memory usage is: Min. 1.7G, Max. 1.7G, Avg. 1.7G, Total 1.7G
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   0.735       0.735       0.735
+         Mesh Preprocessing             3.815       3.815       3.815
+       Operator Construction           11.151      11.151      11.151
+       Linear Solve                     5.257       5.257       5.257
+         Setup                          8.217       8.217       8.217
+         Preconditioner                45.850      45.850      45.850
+         Coarse Solve                   3.714       3.714       3.714
+       Estimation                       0.141       0.141       0.141
+         Construction                   4.077       4.077       4.077
+         Solve                         18.841      18.841      18.841
+       Postprocessing                   0.673       0.673       0.673
+         Paraview                      19.277      19.277      19.277
+       Disk IO                          1.199       1.199       1.199
+       --------------------------------------------------------------
+       Total                          123.055     123.055     123.055
+  ✅  Eigenmodes (cylinder)
+           16,      +5.291400e+00,      +1.058280e-03,      +2.500000e+03,      +5.988382e-12, 
++3.183128e-10
+           17,      +5.417729e+00,      +1.083546e-03,      +2.500000e+03,      +1.189672e-11, 
++6.333028e-10
+           18,      +5.417729e+00,      +1.083546e-03,      +2.500000e+03,      +6.408477e-11, 
++3.411450e-09
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 1.732e-03, global unknowns = 16544
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 315.1M, Max. 315.1M, Avg. 315.1M, Total 
+315.1M
+       Estimated peak per-node memory usage is: Min. 315.1M, Max. 315.1M, Avg. 315.1M, Total 
+315.1M
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   0.008       0.008       0.008
+         Mesh Preprocessing             0.003       0.003       0.003
+       Operator Construction            0.900       0.900       0.900
+       Linear Solve                     3.326       3.326       3.326
+         Setup                          1.802       1.802       1.802
+         Preconditioner               119.471     119.471     119.471
+         Coarse Solve                   0.063       0.063       0.063
+       Eigenvalue Solve                 0.669       0.669       0.669
+       Div.-Free Projection             3.974       3.974       3.974
+       Estimation                       0.080       0.080       0.080
+         Construction                   0.269       0.269       0.269
+         Solve                          1.002       1.002       1.002
+       Postprocessing                   0.458       0.458       0.458
+         Paraview                       9.028       9.028       9.028
+       Disk IO                          0.003       0.003       0.003
+       --------------------------------------------------------------
+       Total                          141.169     141.169     141.169
+  ✅  Coaxial (matched load)
+        Field energy E (9.989e-20 J) + H (1.546e-19 J) = 2.545e-19 J
+       
+        Wrote fields to disk (Paraview) at step 201
+        Updating solution error estimates
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 8.803e-03, global unknowns = 25680
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 303.7M, Max. 303.7M, Avg. 303.7M, Total 
+303.7M
+       Estimated peak per-node memory usage is: Min. 303.7M, Max. 303.7M, Avg. 303.7M, Total 
+303.7M
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   0.013       0.013       0.013
+         Mesh Preprocessing             0.018       0.018       0.018
+       Operator Construction            0.079       0.079       0.079
+       Linear Solve                     5.481       5.481       5.481
+         Setup                          1.472       1.472       1.472
+         Preconditioner               122.810     122.810     122.810
+         Coarse Solve                   3.619       3.619       3.619
+       Time Stepping                    1.010       1.010       1.010
+       Estimation                       0.497       0.497       0.497
+         Construction                   0.198       0.198       0.198
+         Solve                          2.990       2.990       2.990
+       Postprocessing                   1.208       1.208       1.208
+         Paraview                      13.855      13.855      13.855
+       Disk IO                          0.013       0.013       0.013
+       --------------------------------------------------------------
+       Total                          153.397     153.397     153.397
+------------------------------------------------------------
+  6/6 passed
+
+Stopping app - uncaught exception raised locally: SystemExit(0).

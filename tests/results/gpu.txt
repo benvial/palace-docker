@@ -1,0 +1,246 @@
+⪢  modal run test_palace.py --mode gpu --image-tag v0.16.0-gpu-sm80 --verbose true
+✓ Initialized. View run at https://modal.com/apps/benvial/main/ap-G1zF9i7taDU4pCKMJXk6ZB
+✓ Created objects.
+├── 🔨 Created mount /home/bench/dev/gds/dev/palace/palace-docker/tests/test_palace.py
+├── 🔨 Created function check_infra_cpu.
+├── 🔨 Created function check_infra_gpu.
+├── 🔨 Created function run_example_cpu.
+└── 🔨 Created function run_example_gpu.
+
+Mode          : GPU
+Image         : ghcr.io/benvial/palace:v0.16.0-gpu-sm80
+Palace version: v0.16.0
+Solver backend: GPU
+============================================================
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.6.0
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.6.0
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.6.0
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.6.0
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+
+==========
+== CUDA ==
+==========
+
+CUDA Version 12.6.0
+
+Container image Copyright (c) 2016-2023, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+
+This container image and its contents are governed by the NVIDIA Deep Learning Container License.
+By pulling and using the container, you accept the terms and conditions of this license:
+https://developer.nvidia.com/ngc/nvidia-deep-learning-container-license
+
+A copy of this license is made available in this container at /NGC-DL-CONTAINER-LICENSE for your convenience.
+
+
+Results:
+------------------------------------------------------------
+  ✅  nvidia-smi
+       NVIDIA A100-SXM4-40GB, 580.95.05, 40960 MiB
+  ✅  palace --version
+       >> /usr/local/bin/mpirun -n 1 /opt/palace/bin/palace-x86_64.bin --version
+       
+       Palace version: v0.16.0-dirty
+  ✅  MPI (2 procs)
+       >> /usr/local/bin/mpirun -n 2 /opt/palace/bin/palace-x86_64.bin --version
+       
+       Palace version: v0.16.0-dirty
+  ✅  CEED debug
+       -- ldconfig libcuda --
+        libcudart.so.12 (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so.12
+        libcudart.so (libc6,x86-64) => /usr/local/cuda/targets/x86_64-linux/lib/libcudart.so
+        libcudadebugger.so.1 (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/libcudadebugger.so.1
+        libcuda.so.1 (libc6,x86-64) => /usr/lib/x86_64-linux-gnu/libcuda.so.1
+       -- /lib libcuda --
+       ls: cannot access '/lib/libcuda*': No such file or directory
+       -- LD_LIBRARY_PATH --
+       /usr/local/nvidia/lib:/usr/local/nvidia/lib64
+       -- cuda stubs --
+       ls: cannot access '/usr/local/cuda/lib64/stubs/libcuda*': No such file or directory
+       -- CEED backends --
+       >> /opt/palace/bin/palace-x86_64.bin --version
+       
+       Palace version: v0.16.0-dirty
+  ✅  Capacitance (spheres)
+        Wrote fields to disk (Paraview) for source 2
+       
+        Wrote fields to disk (grid function) for source 2
+        Updating solution error estimates
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 6.910e-03, global unknowns = 66328
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 2.8G, Max. 2.8G, Avg. 2.8G, Total 2.8G
+       Estimated peak per-node memory usage is: Min. 2.8G, Max. 2.8G, Avg. 2.8G, Total 2.8G
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   7.354       7.354       7.354
+         Mesh Preprocessing             2.678       2.678       2.678
+       Operator Construction           50.194      50.194      50.194
+       Linear Solve                     0.029       0.029       0.029
+         Setup                          4.566       4.566       4.566
+         Preconditioner                 1.749       1.749       1.749
+         Coarse Solve                   0.076       0.076       0.076
+       Estimation                       0.748       0.748       0.748
+         Construction                   4.379       4.379       4.379
+         Solve                          0.391       0.391       0.391
+       Postprocessing                   1.269       1.269       1.269
+         Paraview                      51.219      51.219      51.219
+         Grid function                 15.473      15.473      15.473
+       Disk IO                          3.721       3.721       3.721
+       --------------------------------------------------------------
+       Total                          143.897     143.897     143.897
+  ✅  Inductance (rings)
+        Sol. ||A|| = 4.890277e+00 (||RHS|| = 3.841477e-01)
+        Field energy H = 9.478e-13 J
+       
+        Wrote fields to disk (Paraview) for source 2
+        Updating solution error estimates
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 2.605e-01, global unknowns = 491852
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 3.2G, Max. 3.2G, Avg. 3.2G, Total 3.2G
+       Estimated peak per-node memory usage is: Min. 3.2G, Max. 3.2G, Avg. 3.2G, Total 3.2G
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   5.157       5.157       5.157
+         Mesh Preprocessing            16.823      16.823      16.823
+       Operator Construction           55.256      55.256      55.256
+       Linear Solve                     0.115       0.115       0.115
+         Setup                          1.654       1.654       1.654
+         Preconditioner                 0.683       0.683       0.683
+         Coarse Solve                   0.557       0.557       0.557
+       Estimation                       0.310       0.310       0.310
+         Construction                   0.166       0.166       0.166
+         Solve                          0.752       0.752       0.752
+       Postprocessing                   1.897       1.897       1.897
+         Paraview                      80.418      80.418      80.418
+       Disk IO                          5.745       5.745       5.745
+       --------------------------------------------------------------
+       Total                          169.587     169.587     169.587
+  ✅  Eigenmodes (cylinder)
+        Wrote mode 14 to disk (Paraview)
+           15,      +5.291398e+00,      +1.112918e-03,      +2.377263e+03,      +1.102626e-04,      +5.861019e-03
+        Wrote mode 15 to disk (Paraview)
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 1.982e-02, global unknowns = 16544
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 2.6G, Max. 2.6G, Avg. 2.6G, Total 2.6G
+       Estimated peak per-node memory usage is: Min. 2.6G, Max. 2.6G, Avg. 2.6G, Total 2.6G
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   0.326       0.326       0.326
+         Mesh Preprocessing             0.015       0.015       0.015
+       Operator Construction            3.367       3.367       3.367
+       Linear Solve                    72.324      72.324      72.324
+         Setup                          1.670       1.670       1.670
+         Preconditioner               405.321     405.321     405.321
+         Coarse Solve                   2.614       2.614       2.614
+       Eigenvalue Solve                 0.258       0.258       0.258
+       Div.-Free Projection            18.860      18.860      18.860
+       Estimation                       0.232       0.232       0.232
+         Construction                   0.417       0.417       0.417
+         Solve                          0.328       0.328       0.328
+       Postprocessing                   0.313       0.313       0.313
+         Paraview                      35.340      35.340      35.340
+       Disk IO                          0.017       0.017       0.017
+       --------------------------------------------------------------
+       Total                          541.439     541.439     541.439
+  ✅  Coaxial (matched load)
+        Field energy E (6.869e+66 J) + H (3.350e+65 J) = 7.204e+66 J
+       
+        Wrote fields to disk (Paraview) at step 201
+        Updating solution error estimates
+       
+       Completed 0 iterations of adaptive mesh refinement (AMR):
+        Indicator norm = 6.787e-01, global unknowns = 25680
+        Max. iterations = 0, tol. = 1.000e-02
+       
+       Estimated peak per-rank memory usage is: Min. 2.6G, Max. 2.6G, Avg. 2.6G, Total 2.6G
+       Estimated peak per-node memory usage is: Min. 2.6G, Max. 2.6G, Avg. 2.6G, Total 2.6G
+       
+       Elapsed Time Report (s)           Min.        Max.        Avg.
+       ==============================================================
+       Initialization                   4.046       4.046       4.046
+         Mesh Preprocessing             0.110       0.110       0.110
+       Operator Construction            7.542       7.542       7.542
+       Linear Solve                    18.813      18.813      18.813
+         Setup                          5.842       5.842       5.842
+         Preconditioner               236.496     236.496     236.496
+         Coarse Solve                  87.013      87.013      87.013
+       Time Stepping                    5.367       5.367       5.367
+       Estimation                       0.651       0.651       0.651
+         Construction                   1.066       1.066       1.066
+         Solve                          1.713       1.713       1.713
+       Postprocessing                   5.714       5.714       5.714
+         Paraview                      75.984      75.984      75.984
+       Disk IO                          0.063       0.063       0.063
+       --------------------------------------------------------------
+       Total                          450.489     450.489     450.489
+------------------------------------------------------------
+  8/8 passed
+
+Stopping app - uncaught exception raised locally: SystemExit(0).

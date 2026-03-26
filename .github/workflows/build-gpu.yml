@@ -1,17 +1,14 @@
-name: Build and Push GPU Docker Images
+name: Build and Push GPU Docker Image
 
 permissions:
   contents: read
   packages: write
 
 on:
-  # Versioned release builds — triggered when a Palace release is published
   release:
     types: [published]
-  # Dev builds — rebuild weekly on Monday at 06:00 UTC from current main
   schedule:
-    - cron: '0 6 * * 1'
-  # Allow manual triggering for either build type
+    - cron: '0 7 * * 1'
   workflow_dispatch:
     inputs:
       build-type:
@@ -32,7 +29,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v5
 
       - name: Set GITHUB_TOKEN
         run: echo "GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
@@ -45,10 +42,18 @@ jobs:
           if [ "${{ matrix.build-type }}" = "dev" ]; then
             echo "TAG=dev" >> $GITHUB_ENV
           else
-            echo "TAG=latest" >> $GITHUB_ENV
+            echo "TAG=${{ matrix.build-type }}" >> $GITHUB_ENV
             echo "VERSION=${{ matrix.build-type }}" >> $GITHUB_ENV
           fi
           echo "CUDA_ARCH=${{ matrix.cuda-arch }}" >> $GITHUB_ENV
 
       - name: Build and push GPU Docker image
         run: make all-gpu
+
+      - name: Tag and push latest-gpu (release builds only)
+        if: github.event_name == 'release'
+        run: |
+          docker tag ${FULL_IMAGE}:${TAG}-gpu-sm${CUDA_ARCH} ${FULL_IMAGE}:latest-gpu-sm${CUDA_ARCH}
+          docker push ${FULL_IMAGE}:latest-gpu-sm${CUDA_ARCH}
+        env:
+          FULL_IMAGE: ghcr.io/benvial/palace
