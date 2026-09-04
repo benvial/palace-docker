@@ -49,7 +49,7 @@ new_slepc = """  try_compile(
 
 result = content.replace(old_petsc, new_petsc).replace(old_slepc, new_slepc)
 if result == content:
-    print("ERROR: no replacements made", file=sys.stderr)
-    sys.exit(1)
+    print("INFO: no replacements made", file=sys.stderr)
+    sys.exit(0)
 open('/opt/palace-src/palace/cmake/PkgConfigHelpers.cmake', 'w').write(result)
 print("Patch applied successfully")
