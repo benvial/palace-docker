@@ -2,6 +2,7 @@ FROM ubuntu:24.04
 
 ARG VERSION
 ARG GITHUB_TOKEN
+ARG OPENMPI_VERSION=5.0.3
 
 LABEL org.opencontainers.image.title="Palace" \
       org.opencontainers.image.source="https://github.com/benvial/palace-docker" \
@@ -10,6 +11,12 @@ LABEL org.opencontainers.image.title="Palace" \
       org.opencontainers.image.description="This container contains Palace compiled with all dependencies (without GPU support)."
 
 ENV PATH="/opt/palace/bin:${PATH}"
+# Required for MPI to run as root inside Docker
+ENV OMPI_ALLOW_RUN_AS_ROOT=1
+ENV OMPI_ALLOW_RUN_AS_ROOT_CONFIRM=1
+# Fixes MPI_ERR_BUFFER in Docker (disables shared memory copy mechanism)
+ENV OMPI_MCA_btl_vader_single_copy_mechanism=none
+ENV OMPI_MCA_btl=^openib
 
 RUN mkdir -p /opt/palace-src
 
@@ -27,12 +34,27 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         python3 \
         wget \
         zlib1g-dev \
-        mpich \
-        libmpich-dev \
         ca-certificates \
+        openssh-client \
         cmake \
     && update-ca-certificates \
     && rm -rf /var/lib/apt/lists/*
+
+# Build OpenMPI from source. Ubuntu 24.04's MPICH 4.2.0 is configured --with-pmix
+# and ships no PMI-1 client, while its only launcher (hydra) speaks PMI-1 only, so
+# MPI_Init silently takes the singleton path and `palace -np N` runs N one-rank jobs.
+# OpenMPI ships a matching launcher and PMIx server, and matches the GPU image's stack.
+# Its launcher (PRRTE) needs openssh-client present even for a single-node run.
+RUN wget https://download.open-mpi.org/release/open-mpi/v5.0/openmpi-${OPENMPI_VERSION}.tar.gz && \
+    tar xf openmpi-${OPENMPI_VERSION}.tar.gz && \
+    cd openmpi-${OPENMPI_VERSION} && \
+    ./configure \
+        --prefix=/usr/local \
+        --enable-mpi-fortran \
+        --enable-shared \
+    && make -j"$(nproc)" install \
+    && ldconfig \
+    && cd / && rm -rf openmpi-${OPENMPI_VERSION} openmpi-${OPENMPI_VERSION}.tar.gz
 
 # Configure git to use GitHub token for authenticated requests
 RUN if [ -n "$GITHUB_TOKEN" ]; then \

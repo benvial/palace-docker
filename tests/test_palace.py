@@ -1,6 +1,7 @@
 # test_palace.py
 #
-# Run basic infrastructure checks and all 4 Palace example simulations on Modal.
+# Run basic infrastructure checks, an MPI parallel regression test, and all
+# Palace example simulations on Modal.
 # Palace parallelism is controlled via its own CLI flags (-np for MPI, -nt for OpenMP).
 #
 # Usage:
@@ -40,6 +41,10 @@ app = modal.App("palace-test")
 
 IMAGE_REGISTRY = "ghcr.io/benvial/palace"
 PALACE_REPO = "https://github.com/awslabs/palace.git"
+
+# Example used for the MPI regression test — the cheapest one to run.
+MPI_EXAMPLE = ("spheres", "spheres.json")
+MPI_NPROCS = 2
 
 EXAMPLES = [
     ("Capacitance (spheres)", "spheres", "spheres.json"),
@@ -92,9 +97,14 @@ def _patch_solver_backend(config_path: str, backend: str) -> None:
 
 
 def _clone_and_run(
-    version: str, example_subdir: str, config_file: str, backend: str
+    version: str,
+    example_subdir: str,
+    config_file: str,
+    backend: str,
+    nprocs: int = 1,
+    clone_suffix: str = "",
 ) -> dict:
-    clone_dir = f"/tmp/palace-{example_subdir}"
+    clone_dir = f"/tmp/palace-{example_subdir}{clone_suffix}"
     rc, out = shell(
         f"git clone --depth=1 --branch {version} --filter=blob:none "
         f"--sparse {PALACE_REPO} {clone_dir} 2>&1 && "
@@ -102,18 +112,74 @@ def _clone_and_run(
         f"git sparse-checkout set examples/{example_subdir} 2>&1"
     )
     if rc != 0:
-        return {"passed": False, "output": f"Clone failed:\n{out}"}
+        return {"passed": False, "output": f"Clone failed:\n{out}", "raw": out}
 
     config_path = f"{clone_dir}/examples/{example_subdir}/{config_file}"
     _patch_solver_backend(config_path, backend)
 
     rc, out = shell(
         f"cd {clone_dir}/examples/{example_subdir} && "
-        f"palace -np 1 -nt 1 {config_file} 2>&1"
+        f"palace -np {nprocs} -nt 1 {config_file} 2>&1"
     )
     if parsed.verbose:
         print(out)
-    return {"passed": rc == 0, "output": "\n".join(out.splitlines()[-30:])}
+    return {
+        "passed": rc == 0,
+        "output": "\n".join(out.splitlines()[-30:]),
+        "raw": out,
+        "run_dir": f"{clone_dir}/examples/{example_subdir}",
+    }
+
+
+def _mpi_sizes_from_output(run_dir: str) -> list:
+    """Read Problem.MPISize out of every palace.json the run wrote."""
+    import glob
+    import json
+
+    sizes = []
+    for path in sorted(glob.glob(f"{run_dir}/**/palace.json", recursive=True)):
+        with open(path, "r") as f:
+            sizes.append(json.load(f).get("Problem", {}).get("MPISize"))
+    return sizes
+
+
+def _do_check_mpi_parallel(version: str, backend: str) -> dict:
+    """Regression test for the MPI launcher: a real multi-rank Palace run.
+
+    When the image's MPI client and launcher speak different wire protocols,
+    MPI_Init silently takes the singleton path: `palace -np N` starts N
+    independent one-rank runs that overwrite each other's output. Neither a
+    single-rank example nor `palace -np N --version` sees that, so assert the
+    rank count Palace itself reports, in stdout and in palace.json.
+    """
+    subdir, config_file = MPI_EXAMPLE
+    name = f"MPI parallel run ({MPI_NPROCS} ranks)"
+    result = _clone_and_run(
+        version, subdir, config_file, backend, nprocs=MPI_NPROCS, clone_suffix="-mpi"
+    )
+    if not result["passed"]:
+        return {"name": name, "passed": False, "output": result["output"]}
+
+    problems = []
+    banner = f"Running with {MPI_NPROCS} MPI processes"
+    if banner not in result["raw"]:
+        problems.append(
+            f"stdout never reported {banner!r} — ranks ran as MPI singletons"
+        )
+
+    sizes = _mpi_sizes_from_output(result["run_dir"])
+    if not sizes:
+        problems.append("no palace.json was written")
+    elif any(size != MPI_NPROCS for size in sizes):
+        problems.append(f"palace.json Problem.MPISize = {sizes}, expected {MPI_NPROCS}")
+
+    if problems:
+        return {
+            "name": name,
+            "passed": False,
+            "output": "\n".join(problems + result["output"].splitlines()[-20:]),
+        }
+    return {"name": name, "passed": True, "output": banner}
 
 
 def _do_check_infra(mode: str) -> list[dict]:
@@ -131,6 +197,8 @@ def _do_check_infra(mode: str) -> list[dict]:
         print(out)
     results.append({"name": "palace --version", "passed": rc == 0, "output": out})
 
+    # Smoke test only: this passes even when the ranks are MPI singletons.
+    # `_do_check_mpi_parallel` is what proves the ranks share a communicator.
     rc, out = shell("palace -np 2 --version")
     if parsed.verbose:
         print(out)
@@ -164,6 +232,16 @@ def run_example_gpu(name: str, subdir: str, config: str, version: str, backend: 
     return {"name": name, **_clone_and_run(version, subdir, config, backend)}
 
 
+@app.function(image=_image, timeout=timeout)
+def check_mpi_parallel_cpu(version: str, backend: str):
+    return _do_check_mpi_parallel(version, backend)
+
+
+@app.function(image=_image, gpu="A100", timeout=timeout)
+def check_mpi_parallel_gpu(version: str, backend: str):
+    return _do_check_mpi_parallel(version, backend)
+
+
 # ── Entrypoint ────────────────────────────────────────────────────────────────
 
 
@@ -183,6 +261,9 @@ def main(
 
     backend = "GPU" if mode == "gpu" else "CPU"
     check_infra = check_infra_gpu if mode == "gpu" else check_infra_cpu
+    check_mpi_parallel = (
+        check_mpi_parallel_gpu if mode == "gpu" else check_mpi_parallel_cpu
+    )
     run_example = run_example_gpu if mode == "gpu" else run_example_cpu
 
     print(f"\nMode          : {mode.upper()}")
@@ -193,6 +274,7 @@ def main(
 
     # Spawn everything in parallel
     infra_future = check_infra.spawn(mode)
+    mpi_future = check_mpi_parallel.spawn(version, backend)
     sim_futures = [
         run_example.spawn(name, subdir, config, version, backend)
         for name, subdir, config in EXAMPLES
@@ -200,8 +282,9 @@ def main(
 
     # Collect
     infra_results = infra_future.get()
+    mpi_result = mpi_future.get()
     sim_results = [f.get() for f in sim_futures]
-    all_results = infra_results + sim_results
+    all_results = infra_results + [mpi_result] + sim_results
 
     # Summary
     print("\nResults:")
