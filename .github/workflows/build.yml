@@ -15,6 +15,10 @@ on:
         description: 'Build type: "dev" or a version tag e.g. "v0.16.0"'
         required: true
         default: 'dev'
+      push-latest:
+        description: 'Also tag and push :latest'
+        type: boolean
+        default: false
 
 jobs:
   build:
@@ -43,12 +47,24 @@ jobs:
           fi
 
       - name: Build and push Docker image
-        run: make all
+        run: |
+          if [ "${{ matrix.build-type }}" = "dev" ]; then
+            make dev
+          else
+            make all
+          fi
 
-      - name: Tag and push latest (release builds only)
-        if: github.event_name == 'release'
+      - name: Tag and push latest
+        if: github.event_name == 'release' || inputs.push-latest
         run: |
           docker tag ${FULL_IMAGE}:${TAG} ${FULL_IMAGE}:latest
           docker push ${FULL_IMAGE}:latest
         env:
           FULL_IMAGE: ghcr.io/benvial/palace
+
+      - name: Prune orphaned untagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: palace
+          package-type: container
+          delete-only-untagged-versions: true

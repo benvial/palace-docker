@@ -15,6 +15,10 @@ on:
         description: 'Build type: "dev" or a version tag e.g. "v0.16.0"'
         required: true
         default: 'dev'
+      push-latest:
+        description: 'Also tag and push :latest-gpu-sm<arch>'
+        type: boolean
+        default: false
 
 jobs:
   build-gpu:
@@ -48,12 +52,29 @@ jobs:
           echo "CUDA_ARCH=${{ matrix.cuda-arch }}" >> $GITHUB_ENV
 
       - name: Build and push GPU Docker image
-        run: make all-gpu
+        run: |
+          if [ "${{ matrix.build-type }}" = "dev" ]; then
+            make dev-gpu
+          else
+            make all-gpu
+          fi
 
-      - name: Tag and push latest-gpu (release builds only)
-        if: github.event_name == 'release'
+      - name: Tag and push latest-gpu
+        if: github.event_name == 'release' || inputs.push-latest
         run: |
           docker tag ${FULL_IMAGE}:${TAG}-gpu-sm${CUDA_ARCH} ${FULL_IMAGE}:latest-gpu-sm${CUDA_ARCH}
           docker push ${FULL_IMAGE}:latest-gpu-sm${CUDA_ARCH}
         env:
           FULL_IMAGE: ghcr.io/benvial/palace
+
+  # separate job: the three arch builds must not prune concurrently
+  prune:
+    needs: build-gpu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Prune orphaned untagged versions
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: palace
+          package-type: container
+          delete-only-untagged-versions: true

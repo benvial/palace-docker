@@ -8,8 +8,8 @@ VERSION ?= $(shell git ls-remote $(REPO_URL) refs/heads/main | cut -f1 | cut -c1
 TAG ?= dev
 CUDA_ARCH ?= 80
 
-.PHONY: info build tag push version all \
-        info-gpu build-gpu tag-gpu push-gpu all-gpu
+.PHONY: info build tag push push-tag version all dev \
+        info-gpu build-gpu tag-gpu push-gpu push-tag-gpu all-gpu dev-gpu
 
 info:
 	@echo "Building VERSION $(VERSION) with tag $(FULL_IMAGE):$(TAG)"
@@ -44,12 +44,22 @@ push:
 	docker push $(FULL_IMAGE):$(TAG)
 	docker push $(FULL_IMAGE):$(VERSION)
 
+push-tag:
+	docker push $(FULL_IMAGE):$(TAG)
+
 push-gpu:
 	docker push $(FULL_IMAGE):$(TAG)-gpu-sm$(CUDA_ARCH)
 	docker push $(FULL_IMAGE):$(VERSION)-gpu-sm$(CUDA_ARCH)
+
+push-tag-gpu:
+	docker push $(FULL_IMAGE):$(TAG)-gpu-sm$(CUDA_ARCH)
 
 version:
 	@echo $(VERSION)
 
 all: build tag push
 all-gpu: build-gpu tag-gpu push-gpu
+
+# dev builds: push only the moving :dev tag, no VERSION tag to pile up
+dev: build push-tag
+dev-gpu: build-gpu push-tag-gpu
